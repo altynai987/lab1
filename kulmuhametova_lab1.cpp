@@ -5,7 +5,34 @@
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    setlocale(LC_ALL, "Russian");
+    Pipe myPipe;
+    KS myCS;
+    cout << "Создание трубы\n";
+    myPipe.input();
+    cout << "\nСоздание КС\n";
+    myCS.input();
+    int choice = -1;
+    while (choice != 0) {
+        cout << "\nМЕНЮ\n";
+        cout << "1. Просмотр\n";
+        cout << "2. Редактировать трубу\n";
+        cout << "3. Редактировать КС\n";
+        cout << "0. Выход\n";
+        cout << "Выберите действие: ";
+        cin >> choice;
+        if (choice == 1) {
+            myPipe.print();
+            myCS.print();
+        }
+        else if (choice == 2) {
+            if (myPipe.inRepair == true) {
+                myPipe.inRepair = false;
+            }
+            else {
+                myPipe.inRepair = true;
+            }
+            cout << "Статус ремонта изменён.\n";
 }
 
 // Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
