@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <windows.h>
 using namespace std;
 int getInt() {
     int x;
@@ -63,6 +62,49 @@ struct Pipe {
     double length;
     int diameter;
     bool inRepair;
+
+    void input() {
+        cout << "Введите название трубы: ";
+        name = getString();
+        cout << "Введите длину трубы (км): ";
+        length = getPositiveDouble();
+        cout << "Введите диаметр трубы (мм): ";
+        diameter = getPositiveInt();
+        inRepair = false;
+    }
+
+    void print() const {
+        cout << "\nТруба" << endl;
+        cout << "Название: " << name << endl;
+        cout << "Длина: " << length << " км" << endl;
+        cout << "Диаметр: " << diameter << " мм" << endl;
+        cout << "В ремонте: " << (inRepair ? "Да" : "Нет") << endl;
+    }
+
+    void toggleRepair() {
+        inRepair = !inRepair;
+        cout << "Статус ремонта изменён: "
+            << (inRepair ? "в ремонте" : "не в ремонте") << endl;
+    }
+
+    bool save(ofstream& fout) const {
+        fout << name << "\n" << length << "\n" << diameter << "\n"
+            << (inRepair ? 1 : 0) << "\n";
+        return !fout.fail();
+    }
+
+    bool load(ifstream& fin) {
+        string line;
+        if (!getline(fin, name) || name.empty()) return false;
+        if (!name.empty() && name.back() == '\r') name.pop_back();
+        if (!(fin >> length) || length <=0 ) return false;
+        if (!(fin >> diameter) || diameter <= 0) return false;
+        string repairStr;
+        if (!(fin >> repairStr)) return false;
+        if (repairStr != "0" && repairStr != "1") return false;
+        inRepair = (repairStr == "1");
+        return true;
+    }
 };
 
 struct KS {
@@ -70,211 +112,88 @@ struct KS {
     int totalShops;
     int workingShops;
     int stationClass;
+
+    void input() {
+        cout << "Введите название КС: ";
+        name = getString();
+        cout << "Введите всего цехов: ";
+        totalShops = getPositiveInt();
+        cout << "Введите цехов в работе (0.." << totalShops << "): ";
+        do {
+            workingShops = getNonNegativeInt();
+            if (workingShops > totalShops) {
+                cout << "Цехов в работе не может быть больше общего количества ("
+                    << totalShops << "). Повторите: ";
+            }
+        } while (workingShops > totalShops);
+        cout << "Введите класс станции: ";
+        stationClass = getPositiveInt();
+    }
+
+    void print() const {
+        cout << "\nКС" << endl;
+        cout << "Название: " << name << endl;
+        cout << "Всего цехов: " << totalShops << endl;
+        cout << "В работе: " << workingShops << endl;
+        cout << "Класс: " << stationClass << endl;
+    }
+
+    void manageShop() {
+        cout << "1 - запустить цех, 0 - остановить цех: ";
+        int action = getNonNegativeInt();
+
+        if (action == 1) {
+            if (workingShops < totalShops) {
+                workingShops++;
+                cout << "Цех запущен. Работает: " << workingShops
+                    << " из " << totalShops << endl;
+            }
+            else cout << "Все цеха уже работают" << endl;
+        }
+        else if (action == 0) {
+            if (workingShops > 0) {
+                workingShops--;
+                cout << "Цех остановлен. Работает: " << workingShops
+                    << " из " << totalShops << endl;
+            }
+            else cout << "Все цеха уже остановлены" << endl;
+        }
+        else cout << "Неверная команда. Введите 0 или 1" << endl;
+    }
+
+    bool save(ofstream& fout) const {
+        fout << name << "\n" << totalShops << "\n" << workingShops << "\n"
+            << stationClass << "\n";
+        return !fout.fail();
+    }
+
+    bool load(ifstream& fin) {
+        string line;
+        if (!getline(fin, name) || name.empty()) return false;
+        if (!name.empty() && name.back() == '\r') name.pop_back();
+        if (!(fin >> totalShops) || totalShops<=0) return false;
+        if (!(fin >> workingShops)) return false;
+        if (!(fin >> stationClass)) return false;
+        if (workingShops > totalShops) return false;
+        if (totalShops < 0 || workingShops < 0 || stationClass <= 0) return false;
+        return true;
+    }
 };
 
-Pipe createPipe() {
-    Pipe p;
-    cout << "Введите название трубы: ";
-    p.name = getString();
-    cout << "Введите длину трубы (км): ";
-    p.length = getPositiveDouble();
-    cout << "Введите диаметр трубы (мм): ";
-    p.diameter = getPositiveInt();
-    p.inRepair = false;
-    return p;
-}
-
-KS createKS() {
-    KS cs;
-    cout << "Введите название КС: ";
-    cs.name = getString();
-    cout << "Введите всего цехов: ";
-    cs.totalShops = getPositiveInt();
-    cout << "Введите цехов в работе (0.." << cs.totalShops << "): ";
-    do {
-        cs.workingShops = getNonNegativeInt();
-        if (cs.workingShops > cs.totalShops) {
-            cout << "Цехов в работе не может быть больше общего количества ("
-                << cs.totalShops << "). Повторите: ";
-        }
-    } while (cs.workingShops > cs.totalShops);
-    cout << "Введите класс станции: ";
-    cs.stationClass = getPositiveInt();
-    return cs;
-}
-
-void printPipe(const Pipe& p) {
-    cout << "\nТруба" << endl;
-    cout << "Название: " << p.name << endl;
-    cout << "Длина: " << p.length << " км" << endl;
-    cout << "Диаметр: " << p.diameter << " мм" << endl;
-    cout << "В ремонте: " << (p.inRepair ? "Да" : "Нет") << endl;
-}
-
-void printKS(const KS& cs) {
-    cout << "\nКС" << endl;
-    cout << "Название: " << cs.name << endl;
-    cout << "Всего цехов: " << cs.totalShops << endl;
-    cout << "В работе: " << cs.workingShops << endl;
-    cout << "Класс: " << cs.stationClass << endl;
-}
-
-void saveData(const Pipe& p, bool pipeExists, const KS& cs, bool ksExists) {
-    ofstream fout("data.txt");
-    if (!fout.is_open()) {
-        cout << "Ошибка: не удалось открыть файл для записи" << endl;
-        return;
-    }
-
-    if (pipeExists) {
-        fout << "PIPE\n";
-        fout << p.name << "\n";
-        fout << p.length << "\n";
-        fout << p.diameter << "\n";
-        fout << (p.inRepair ? 1 : 0) << "\n";
-    }
-    else {
-        fout << "NO_PIPE\n";
-    }
-
-    if (ksExists) {
-        fout << "KS\n";
-        fout << cs.name << "\n";
-        fout << cs.totalShops << "\n";
-        fout << cs.workingShops << "\n";
-        fout << cs.stationClass << "\n";
-    }
-    else {
-        fout << "NO_KS\n";
-    }
-
-    fout.close();
-    if (fout.fail()) {
-        cout << "Ошибка при записи в файл" << endl;
-    }
-    else {
-        cout << "Данные сохранены в data.txt" << endl;
-    }
-}
-
-void loadData(Pipe& p, KS& cs, bool& pipeExists, bool& ksExists) {
-    ifstream fin("data.txt");
-    if (!fin.is_open()) {
-        cout << "Ошибка: файл data.txt не найден" << endl;
-        return;
-    }
-
-    string line;
-    p.name = ""; p.length = 0; p.diameter = 0; p.inRepair = false;
-    cs.name = ""; cs.totalShops = 0; cs.workingShops = 0; cs.stationClass = 0;
-    pipeExists = false;
-    ksExists = false;
-
-    if (!getline(fin, line)) {
-        cout << "Ошибка: файл пуст" << endl;
-        fin.close();
-        return;
-    }
-    if (!line.empty() && line.back() == '\r') line.pop_back();
-
-    if (line != "PIPE") {
-        cout << "Ошибка: некорректный формат файла (труба)" << endl;
-        fin.close();
-        return;
-    }
-
-    if (!getline(fin, p.name)) {
-        cout << "Ошибка чтения имени трубы" << endl;
-        fin.close();
-        return;
-    }
-    if (!p.name.empty() && p.name.back() == '\r') p.name.pop_back();
-
-    if (!(fin >> p.length)) {
-        cout << "Ошибка чтения длины трубы" << endl;
-        fin.close();
-        return;
-    }
-    if (!(fin >> p.diameter)) {
-        cout << "Ошибка чтения диаметра трубы" << endl;
-        fin.close();
-        return;
-    }
-    int repair;
-    if (!(fin >> repair)) {
-        cout << "Ошибка чтения статуса ремонта" << endl;
-        fin.close();
-        return;
-    }
-    p.inRepair = (repair == 1);
-    pipeExists = true;
-    fin.ignore(10000, '\n'); 
-    if (!getline(fin, line)) {
-        cout << "Предупреждение: данные КС отсутствуют в файле" << endl;
-        fin.close();
-        return;
-    }
-    if (!line.empty() && line.back() == '\r') line.pop_back();
-
-    if (line != "KS") {
-        cout << "Ошибка: некорректный формат файла (КС)" << endl;
-        fin.close();
-        return;
-    }
-
-    if (!getline(fin, cs.name)) {
-        cout << "Ошибка чтения имени КС" << endl;
-        fin.close();
-        return;
-    }
-    if (!cs.name.empty() && cs.name.back() == '\r') cs.name.pop_back();
-
-    if (!(fin >> cs.totalShops)) {
-        cout << "Ошибка чтения количества цехов" << endl;
-        fin.close();
-        return;
-    }
-    if (!(fin >> cs.workingShops)) {
-        cout << "Ошибка чтения количества работающих цехов" << endl;
-        fin.close();
-        return;
-    }
-    if (!(fin >> cs.stationClass)) {
-        cout << "Ошибка чтения класса станции" << endl;
-        fin.close();
-        return;
-    }
-    if (cs.workingShops > cs.totalShops) {
-        cout << "Предупреждение: в файле цехов в работе больше, чем всего. Исправлено." << endl;
-        cs.workingShops = cs.totalShops;
-    }
-    if (cs.totalShops < 0 || cs.workingShops < 0 || cs.stationClass < 0) {
-        cout << "Ошибка: некорректные данные КС в файле" << endl;
-        fin.close();
-        return;
-    }
-    ksExists = true;
-
-    fin.close();
-    cout << "Данные загружены из data.txt" << endl;
-}
-
 int main() {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-
+    setlocale(LC_ALL, "Russian");
     Pipe myPipe;
     KS myCS;
     bool pipeExists = false;
     bool ksExists = false;
 
     while (true) {
-        cout << "\nМЕНЮ " << endl;
+        cout << "\nМЕНЮ" << endl;
         cout << "1. Добавить трубу" << endl;
         cout << "2. Добавить КС" << endl;
         cout << "3. Просмотр всех объектов" << endl;
         cout << "4. Редактировать трубу (статус ремонта)" << endl;
-        cout << "5. Редактировать КС (запуск/останов цеха)" << endl;
+        cout << "5. Редактировать КС (запуск/остановка цеха)" << endl;
         cout << "6. Сохранить" << endl;
         cout << "7. Загрузить" << endl;
         cout << "0. Выход" << endl;
@@ -284,66 +203,32 @@ int main() {
 
         switch (choice) {
         case 1:
-            myPipe = createPipe();
+            myPipe.input();
             pipeExists = true;
             cout << "Труба добавлена" << endl;
             break;
 
         case 2:
-            myCS = createKS();
+            myCS.input();
             ksExists = true;
             cout << "КС добавлена" << endl;
             break;
 
         case 3:
-            if (pipeExists) printPipe(myPipe);
+            if (pipeExists) myPipe.print();
             else cout << "Труба еще не создана" << endl;
-            if (ksExists) printKS(myCS);
+            if (ksExists) myCS.print();
             else cout << "КС еще не создана" << endl;
             break;
 
         case 4:
-            if (pipeExists) {
-                myPipe.inRepair = !myPipe.inRepair;
-                cout << "Статус ремонта изменён: "
-                    << (myPipe.inRepair ? "в ремонте" : "не в ремонте") << endl;
-            }
-            else {
-                cout << "Сначала создайте трубу (пункт 1)" << endl;
-            }
+            if (pipeExists) myPipe.toggleRepair();
+            else cout << "Сначала создайте трубу" << endl;
             break;
 
         case 5:
-            if (ksExists) {
-                cout << "1 - запустить цех, 0 - остановить цех: ";
-                int action = getNonNegativeInt();
-                if (action == 1) {
-                    if (myCS.workingShops < myCS.totalShops) {
-                        myCS.workingShops++;
-                        cout << "Цех запущен. Работает: " << myCS.workingShops
-                            << " из " << myCS.totalShops << endl;
-                    }
-                    else {
-                        cout << "Все цеха уже работают" << endl;
-                    }
-                }
-                else if (action == 0) {
-                    if (myCS.workingShops > 0) {
-                        myCS.workingShops--;
-                        cout << "Цех остановлен. Работает: " << myCS.workingShops
-                            << " из " << myCS.totalShops << endl;
-                    }
-                    else {
-                        cout << "Все цеха уже остановлены" << endl;
-                    }
-                }
-                else {
-                    cout << "Неверная команда. Введите 0 или 1" << endl;
-                }
-            }
-            else {
-                cout << "Сначала создайте КС (пункт 2)" << endl;
-            }
+            if (ksExists) myCS.manageShop();
+            else cout << "Сначала создайте КС" << endl;
             break;
 
         case 6:
@@ -351,13 +236,77 @@ int main() {
                 cout << "Нечего сохранять - объекты не созданы" << endl;
             }
             else {
-                saveData(myPipe, pipeExists, myCS, ksExists);
+                ifstream check("data.txt");
+                if (!check.is_open()) {
+                    cout << "Ошибка: файл не существует, новый не создаем" << endl;
+                }
+                else {
+                    check.close();
+                    ofstream fout("data.txt");
+                    if (!fout.is_open()) {
+                        cout << "Ошибка: не удалось открыть файл для записи" << endl;
+                    }
+                    else {
+                        fout << (pipeExists ? 1 : 0) << "\n";
+                        if (pipeExists) myPipe.save(fout);
+                        fout << (ksExists ? 1 : 0) << "\n";
+                        if (ksExists) myCS.save(fout);
+                        fout.close();
+                        cout << "Данные сохранены в data.txt" << endl;
+                    }
+                }
             }
             break;
 
-        case 7:
-            loadData(myPipe, myCS, pipeExists, ksExists);
+        case 7: {
+            ifstream fin("data.txt");
+            if (!fin.is_open()) {
+                cout << "Ошибка: файл не найден" << endl;
+            }
+            else {
+                Pipe tempPipe;
+                KS tempStation;
+                bool tempHasPipe = false;
+                bool tempHasStation = false;
+                bool loadSuccess = true;
+
+                int pipeCount;
+                if (!(fin >> pipeCount)) loadSuccess = false;
+                else {
+                    fin.ignore(10000, '\n');
+                    if (pipeCount == 1) {
+                        if (!tempPipe.load(fin)) loadSuccess = false;
+                        else tempHasPipe = true;
+                    }
+                    else if (pipeCount != 0) loadSuccess = false;
+                }
+
+                if (loadSuccess) {
+                    int stationCount;
+                    if (!(fin >> stationCount)) loadSuccess = false;
+                    else {
+                        fin.ignore(10000, '\n');
+                        if (stationCount == 1) {
+                            if (!tempStation.load(fin)) loadSuccess = false;
+                            else tempHasStation = true;
+                        }
+                        else if (stationCount != 0) loadSuccess = false;
+                    }
+                }
+
+                if (loadSuccess) {
+                    pipeExists = tempHasPipe;
+                    ksExists = tempHasStation;
+                    if (tempHasPipe) myPipe = tempPipe;
+                    else myPipe = Pipe();
+                    if (tempHasStation) myCS = tempStation;
+                    else myCS = KS();
+                    cout << "Данные загружены из data.txt" << endl;
+                }
+                else cout << "Ошибка чтения файла" << endl;
+            }
             break;
+        }
 
         case 0:
             cout << "Выход из программы" << endl;
