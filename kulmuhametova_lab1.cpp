@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 using namespace std;
+
 int getInt() {
     int x;
     while (true) {
@@ -51,9 +52,6 @@ double getPositiveDouble() {
 string getString() {
     string s;
     getline(cin, s);
-    if (!s.empty() && s.back() == '\r') {
-        s.pop_back();
-    }
     return s;
 }
 
@@ -94,10 +92,8 @@ struct Pipe {
     }
 
     bool load(ifstream& fin) {
-        string line;
         if (!getline(fin, name) || name.empty()) return false;
-        if (!name.empty() && name.back() == '\r') name.pop_back();
-        if (!(fin >> length) || length <=0 ) return false;
+        if (!(fin >> length) || length <= 0) return false;
         if (!(fin >> diameter) || diameter <= 0) return false;
         string repairStr;
         if (!(fin >> repairStr)) return false;
@@ -168,10 +164,8 @@ struct KS {
     }
 
     bool load(ifstream& fin) {
-        string line;
         if (!getline(fin, name) || name.empty()) return false;
-        if (!name.empty() && name.back() == '\r') name.pop_back();
-        if (!(fin >> totalShops) || totalShops<=0) return false;
+        if (!(fin >> totalShops) || totalShops <= 0) return false;
         if (!(fin >> workingShops)) return false;
         if (!(fin >> stationClass)) return false;
         if (workingShops > totalShops) return false;
