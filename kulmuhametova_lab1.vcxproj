@@ -139,7 +139,19 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Input.cpp" />
+    <ClCompile Include="KS.cpp" />
     <ClCompile Include="kulmuhametova_lab1.cpp" />
+    <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="Logger.h" />
+    <ClCompile Include="Manager.cpp" />
+    <ClCompile Include="Pipe.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="KS.h" />
+    <ClInclude Include="Manager.h" />
+    <ClInclude Include="Pipe.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

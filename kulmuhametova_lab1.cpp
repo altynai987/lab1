@@ -1,316 +1,76 @@
+#include "Manager.h"
+#include "Logger.h"
+#include "Input.h"
 #include <iostream>
-#include <string>
 #include <fstream>
-using namespace std;
+#define NOMINMAX
+#include <windows.h>
 
-int getInt() {
-    int x;
-    while (true) {
-        cin >> x;
-        if (cin && cin.peek() == '\n') {
-            cin.ignore(10000, '\n');
-            return x;
-        }
-        cout << "Ошибка ввода. Введите целое число: ";
-        cin.clear();
-        cin.ignore(10000, '\n');
-    }
-}
+class redirect_output_wrapper {
+private:
+    std::ostream& stream;
+    std::streambuf* const old_buf;
 
-int getPositiveInt() {
-    int x;
-    do {
-        x = getInt();
-        if (x <= 0) cout << "Число должно быть положительным: ";
-    } while (x <= 0);
-    return x;
-}
-
-int getNonNegativeInt() {
-    int x;
-    do {
-        x = getInt();
-        if (x < 0) cout << "Число должно быть неотрицательным: ";
-    } while (x < 0);
-    return x;
-}
-
-double getPositiveDouble() {
-    double x;
-    while (true) {
-        cin >> x;
-        if (cin && cin.peek() == '\n' && x > 0) {
-            cin.ignore(10000, '\n');
-            return x;
-        }
-        cout << "Ошибка ввода. Введите положительное число: ";
-        cin.clear();
-        cin.ignore(10000, '\n');
-    }
-}
-
-string getString() {
-    string s;
-    getline(cin, s);
-    return s;
-}
-
-struct Pipe {
-    string name;
-    double length;
-    int diameter;
-    bool inRepair;
-
-    void input() {
-        cout << "Введите название трубы: ";
-        name = getString();
-        cout << "Введите длину трубы (км): ";
-        length = getPositiveDouble();
-        cout << "Введите диаметр трубы (мм): ";
-        diameter = getPositiveInt();
-        inRepair = false;
+public:
+    redirect_output_wrapper(std::ostream& src)
+        : old_buf(src.rdbuf()), stream(src) {
     }
 
-    void print() const {
-        cout << "\nТруба" << endl;
-        cout << "Название: " << name << endl;
-        cout << "Длина: " << length << " км" << endl;
-        cout << "Диаметр: " << diameter << " мм" << endl;
-        cout << "В ремонте: " << (inRepair ? "Да" : "Нет") << endl;
+    ~redirect_output_wrapper() {
+        stream.rdbuf(old_buf);
     }
 
-    void toggleRepair() {
-        inRepair = !inRepair;
-        cout << "Статус ремонта изменён: "
-            << (inRepair ? "в ремонте" : "не в ремонте") << endl;
-    }
-
-    bool save(ofstream& fout) const {
-        fout << name << "\n" << length << "\n" << diameter << "\n"
-            << (inRepair ? 1 : 0) << "\n";
-        return !fout.fail();
-    }
-
-    bool load(ifstream& fin) {
-        if (!getline(fin, name) || name.empty()) return false;
-        if (!(fin >> length) || length <= 0) return false;
-        if (!(fin >> diameter) || diameter <= 0) return false;
-        string repairStr;
-        if (!(fin >> repairStr)) return false;
-        if (repairStr != "0" && repairStr != "1") return false;
-        inRepair = (repairStr == "1");
-        return true;
+    void redirect(std::ostream& dest) {
+        stream.rdbuf(dest.rdbuf());
     }
 };
 
-struct KS {
-    string name;
-    int totalShops;
-    int workingShops;
-    int stationClass;
-
-    void input() {
-        cout << "Введите название КС: ";
-        name = getString();
-        cout << "Введите всего цехов: ";
-        totalShops = getPositiveInt();
-        cout << "Введите цехов в работе (0.." << totalShops << "): ";
-        do {
-            workingShops = getNonNegativeInt();
-            if (workingShops > totalShops) {
-                cout << "Цехов в работе не может быть больше общего количества ("
-                    << totalShops << "). Повторите: ";
-            }
-        } while (workingShops > totalShops);
-        cout << "Введите класс станции: ";
-        stationClass = getPositiveInt();
-    }
-
-    void print() const {
-        cout << "\nКС" << endl;
-        cout << "Название: " << name << endl;
-        cout << "Всего цехов: " << totalShops << endl;
-        cout << "В работе: " << workingShops << endl;
-        cout << "Класс: " << stationClass << endl;
-    }
-
-    void manageShop() {
-        cout << "1 - запустить цех, 0 - остановить цех: ";
-        int action = getNonNegativeInt();
-
-        if (action == 1) {
-            if (workingShops < totalShops) {
-                workingShops++;
-                cout << "Цех запущен. Работает: " << workingShops
-                    << " из " << totalShops << endl;
-            }
-            else cout << "Все цеха уже работают" << endl;
-        }
-        else if (action == 0) {
-            if (workingShops > 0) {
-                workingShops--;
-                cout << "Цех остановлен. Работает: " << workingShops
-                    << " из " << totalShops << endl;
-            }
-            else cout << "Все цеха уже остановлены" << endl;
-        }
-        else cout << "Неверная команда. Введите 0 или 1" << endl;
-    }
-
-    bool save(ofstream& fout) const {
-        fout << name << "\n" << totalShops << "\n" << workingShops << "\n"
-            << stationClass << "\n";
-        return !fout.fail();
-    }
-
-    bool load(ifstream& fin) {
-        if (!getline(fin, name) || name.empty()) return false;
-        if (!(fin >> totalShops) || totalShops <= 0) return false;
-        if (!(fin >> workingShops)) return false;
-        if (!(fin >> stationClass)) return false;
-        if (workingShops > totalShops) return false;
-        if (totalShops < 0 || workingShops < 0 || stationClass <= 0) return false;
-        return true;
-    }
-};
+void showMenu() {
+    std::cout << "\n===== МЕНЮ =====" << std::endl;
+    std::cout << "1. Добавить (трубу / КС)" << std::endl;
+    std::cout << "2. Просмотр всех объектов" << std::endl;
+    std::cout << "3. Редактировать / удалить / поиск" << std::endl;
+    std::cout << "4. Пакетное редактирование труб" << std::endl;
+    std::cout << "5. Сохранить" << std::endl;
+    std::cout << "6. Загрузить" << std::endl;
+    std::cout << "7. Восстановить данные из файла лога" << std::endl;
+    std::cout << "0. Выход" << std::endl;
+}
 
 int main() {
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
     setlocale(LC_ALL, "Russian");
-    Pipe myPipe;
-    KS myCS;
-    bool pipeExists = false;
-    bool ksExists = false;
 
-    while (true) {
-        cout << "\nМЕНЮ" << endl;
-        cout << "1. Добавить трубу" << endl;
-        cout << "2. Добавить КС" << endl;
-        cout << "3. Просмотр всех объектов" << endl;
-        cout << "4. Редактировать трубу (статус ремонта)" << endl;
-        cout << "5. Редактировать КС (запуск/остановка цеха)" << endl;
-        cout << "6. Сохранить" << endl;
-        cout << "7. Загрузить" << endl;
-        cout << "0. Выход" << endl;
-        cout << "Введите номер действия: ";
+    // Создаём логгер и открываем файл с уникальным именем
+    Logger logger;
+    logger.open("log");
 
-        int choice = getNonNegativeInt();
-
-        switch (choice) {
-        case 1:
-            myPipe.input();
-            pipeExists = true;
-            cout << "Труба добавлена" << endl;
-            break;
-
-        case 2:
-            myCS.input();
-            ksExists = true;
-            cout << "КС добавлена" << endl;
-            break;
-
-        case 3:
-            if (pipeExists) myPipe.print();
-            else cout << "Труба еще не создана" << endl;
-            if (ksExists) myCS.print();
-            else cout << "КС еще не создана" << endl;
-            break;
-
-        case 4:
-            if (pipeExists) myPipe.toggleRepair();
-            else cout << "Сначала создайте трубу" << endl;
-            break;
-
-        case 5:
-            if (ksExists) myCS.manageShop();
-            else cout << "Сначала создайте КС" << endl;
-            break;
-
-        case 6:
-            if (!pipeExists && !ksExists) {
-                cout << "Нечего сохранять - объекты не созданы" << endl;
-            }
-            else {
-                ifstream check("data.txt");
-                if (!check.is_open()) {
-                    cout << "Ошибка: файл не существует, новый не создаем" << endl;
-                }
-                else {
-                    check.close();
-                    ofstream fout("data.txt");
-                    if (!fout.is_open()) {
-                        cout << "Ошибка: не удалось открыть файл для записи" << endl;
-                    }
-                    else {
-                        fout << (pipeExists ? 1 : 0) << "\n";
-                        if (pipeExists) myPipe.save(fout);
-                        fout << (ksExists ? 1 : 0) << "\n";
-                        if (ksExists) myCS.save(fout);
-                        fout.close();
-                        cout << "Данные сохранены в data.txt" << endl;
-                    }
-                }
-            }
-            break;
-
-        case 7: {
-            ifstream fin("data.txt");
-            if (!fin.is_open()) {
-                cout << "Ошибка: файл не найден" << endl;
-            }
-            else {
-                Pipe tempPipe;
-                KS tempStation;
-                bool tempHasPipe = false;
-                bool tempHasStation = false;
-                bool loadSuccess = true;
-
-                int pipeCount;
-                if (!(fin >> pipeCount)) loadSuccess = false;
-                else {
-                    fin.ignore(10000, '\n');
-                    if (pipeCount == 1) {
-                        if (!tempPipe.load(fin)) loadSuccess = false;
-                        else tempHasPipe = true;
-                    }
-                    else if (pipeCount != 0) loadSuccess = false;
-                }
-
-                if (loadSuccess) {
-                    int stationCount;
-                    if (!(fin >> stationCount)) loadSuccess = false;
-                    else {
-                        fin.ignore(10000, '\n');
-                        if (stationCount == 1) {
-                            if (!tempStation.load(fin)) loadSuccess = false;
-                            else tempHasStation = true;
-                        }
-                        else if (stationCount != 0) loadSuccess = false;
-                    }
-                }
-
-                if (loadSuccess) {
-                    pipeExists = tempHasPipe;
-                    ksExists = tempHasStation;
-                    if (tempHasPipe) myPipe = tempPipe;
-                    else myPipe = Pipe();
-                    if (tempHasStation) myCS = tempStation;
-                    else myCS = KS();
-                    cout << "Данные загружены из data.txt" << endl;
-                }
-                else cout << "Ошибка чтения файла" << endl;
-            }
-            break;
-        }
-
-        case 0:
-            cout << "Выход из программы" << endl;
-            return 0;
-
-        default:
-            cout << "Неверный пункт меню" << endl;
-            break;
-        }
+    // Перенаправляем cerr в лог-файл
+    redirect_output_wrapper cerr_out(std::cerr);
+    if (logger.isOpen()) {
+        cerr_out.redirect(logger.getStream());
     }
 
-    return 0;
+    Manager manager;
+
+    while (true) {
+        showMenu();
+        int choice = getInt(MENU_PROMPT, 0, 7);
+        std::cerr << "Выбран пункт меню: " << choice << std::endl;
+
+        switch (choice) {
+        case 1: manager.addObject(); break;
+        case 2: manager.viewAll(); break;
+        case 3: manager.manageObjects(); break;
+        case 4: manager.batchEditPipes(); break;
+        case 5: manager.saveData(); break;
+        case 6: manager.loadData(); break;
+        case 7: manager.restoreFromLog(); break;
+        case 0:
+            std::cerr << "Программа завершена" << std::endl;
+            std::cout << "Выход" << std::endl;
+            return 0;
+        }
+    }
 }
